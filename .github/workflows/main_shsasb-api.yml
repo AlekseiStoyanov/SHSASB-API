@@ -24,7 +24,6 @@ jobs:
           node-version: '22.x'
 
       - name: npm install, build, and test
-        working-directory: ./poc-backend
         run: |
           npm install
           npm run build --if-present
@@ -34,7 +33,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: ./poc-backend
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
@@ -52,9 +51,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_566BDFDAF74647A589A25D4F8808765B }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5F5F535368284E2E80C1CC1F14F15640 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_D45D6F384DD6401BBFCFFA5062AED6C5 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5B9EA4C6D3AC48FD91FB40757889BA7D }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5F4C5778FDFB4FAF9420546CDCE8E0A2 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_7336F75FE4FF4BF0A5F6BC43D3763132 }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
