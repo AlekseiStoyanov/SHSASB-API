@@ -3,7 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 
-const API_KEY = process.env.API_KEY || "your-api-key-here";
+const API_KEY = process.env.API_KEY;
 
 const app = express();
 const server = http.createServer(app);
