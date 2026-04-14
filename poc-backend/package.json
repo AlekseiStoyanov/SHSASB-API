@@ -1,7 +1,7 @@
 {
   "name": "poc-backend",
-  "version": "1.0.0",
-  "description": "Stage 1 backend POC — in-memory, no database",
+  "version": "2.0.0",
+  "description": "Backend API — Azure MySQL, delta sync, super admin wipe",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +9,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "mysql2": "^3.9.7",
     "socket.io": "^4.7.2"
   }
 }
