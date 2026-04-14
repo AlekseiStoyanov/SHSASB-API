@@ -83,7 +83,7 @@ All set in Azure App Service → Configuration → Application Settings.
 CREATE TABLE messages (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   content     VARCHAR(1000) NOT NULL,
-  created_at  DATETIME DEFAULT UTC_TIMESTAMP()
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
