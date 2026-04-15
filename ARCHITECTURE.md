@@ -53,10 +53,11 @@ Frontend sends `DELETE /messages` with `X-Admin-Username` + `X-Admin-Password` h
 
 - All traffic over HTTPS / WSS (enforced by Azure)
 - `X-API-Key` header required on all HTTP requests
-- Socket.io connections validated via `handshake.auth.apiKey`
-- `API_KEY`, DB credentials, and super admin credentials stored as Azure App Service Application Settings (never in code)
+- Socket.io connections validated via `handshake.auth.apiKey` + `handshake.auth.token`
+- Passwords hashed with bcrypt (cost factor 12) before storage — plaintext never stored
+- JWTs signed with `JWT_SECRET`, 8-hour expiry
+- Super admin identity validated via env vars at login — account never stored in DB (immune to DB wipe)
 - All SQL queries use parameterized statements (`pool.execute` with `?` placeholders) — no string concatenation
-- Super admin wipe requires `X-Admin-Username` + `X-Admin-Password` headers matching env vars `SUPER_ADMIN_USERNAME` + `SUPER_ADMIN_PASSWORD`
 - SSL/TLS enforced on the MySQL connection (`ssl: { rejectUnauthorized: true }`)
 
 ---
@@ -72,8 +73,9 @@ All set in Azure App Service → Configuration → Application Settings.
 | `DB_USER` | MySQL username |
 | `DB_PASSWORD` | MySQL password |
 | `DB_NAME` | Database name (e.g. `shsasb`) |
-| `SUPER_ADMIN_USERNAME` | Username for the super admin wipe endpoint |
-| `SUPER_ADMIN_PASSWORD` | Password for the super admin wipe endpoint |
+| `SUPER_ADMIN_USERNAME` | Super admin username — validated at login, never stored in DB |
+| `SUPER_ADMIN_PASSWORD` | Super admin password — validated at login, never stored in DB |
+| `JWT_SECRET` | Random secret used to sign and verify JWTs (min 32 chars recommended) |
 
 ---
 
@@ -85,6 +87,14 @@ CREATE TABLE messages (
   content     VARCHAR(1000) NOT NULL,
   created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE users (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  username      VARCHAR(50) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role          ENUM('user', 'superadmin') DEFAULT 'user',
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ---
@@ -95,8 +105,10 @@ CREATE TABLE messages (
 |--------|------|------|-------------|
 | GET | `/` | API key | Health check |
 | GET | `/messages?after=<id>` | API key | Delta fetch — returns messages with `id > after` (default `0` = all) |
-| POST | `/messages` | API key | Insert a message, broadcast to all clients |
-| DELETE | `/messages` | API key + admin headers | Super admin wipe — deletes all messages |
+| POST | `/messages` | API key + JWT | Insert a message, broadcast to all clients |
+| DELETE | `/messages` | API key + JWT (superadmin role) | Wipe all messages |
+| POST | `/auth/register` | API key | Create a new user account (username 3-50 chars, password min 8 chars) |
+| POST | `/auth/login` | API key | Returns a JWT (8h expiry). Checks super admin env vars first, then DB |
 
 ## WebSocket Events
 
