@@ -156,7 +156,7 @@ app.get("/messages", async (req, res) => {
   try {
     const after = parseInt(req.query.after, 10) || 0;
     const [rows] = await pool.execute(
-      "SELECT id, content, created_at FROM messages WHERE id > ? ORDER BY id ASC",
+      "SELECT id, content, username, created_at FROM messages WHERE id > ? ORDER BY id ASC",
       [after]
     );
     res.json(rows);
@@ -174,11 +174,11 @@ app.post("/messages", requireAuth, async (req, res) => {
   }
   try {
     const [result] = await pool.execute(
-      "INSERT INTO messages (content) VALUES (?)",
-      [content]
+      "INSERT INTO messages (content, username) VALUES (?, ?)",
+      [content, req.user.username]
     );
     const [rows] = await pool.execute(
-      "SELECT id, content, created_at FROM messages WHERE id = ?",
+      "SELECT id, content, username, created_at FROM messages WHERE id = ?",
       [result.insertId]
     );
     const message = rows[0];
@@ -234,11 +234,11 @@ io.on("connection", (socket) => {
     if (!content) return;
     try {
       const [result] = await pool.execute(
-        "INSERT INTO messages (content) VALUES (?)",
-        [content]
+        "INSERT INTO messages (content, username) VALUES (?, ?)",
+        [content, socket.user.username]
       );
       const [rows] = await pool.execute(
-        "SELECT id, content, created_at FROM messages WHERE id = ?",
+        "SELECT id, content, username, created_at FROM messages WHERE id = ?",
         [result.insertId]
       );
       const message = rows[0];
