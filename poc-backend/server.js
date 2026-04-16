@@ -5,6 +5,26 @@ const cors = require("cors");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
+const path = require("path");
+
+// ============================================================
+// PROFANITY FILTER
+// ============================================================
+const badwords = fs
+  .readFileSync(path.join(__dirname, "badwords.txt"), "utf8")
+  .split(/\r?\n/)
+  .map(w => w.trim())
+  .filter(Boolean);
+
+const badwordRegex = new RegExp(
+  `\\b(${badwords.map(w => w.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("|")})\\b`,
+  "gi"
+);
+
+function filterContent(text) {
+  return text.replace(badwordRegex, match => "#".repeat(match.length));
+}
 
 // ============================================================
 // ENV VARS
@@ -172,17 +192,18 @@ app.post("/messages", requireAuth, async (req, res) => {
   if (!content) {
     return res.status(400).json({ error: "content is required" });
   }
+  const filtered = filterContent(content);
   try {
     const [result] = await pool.execute(
       "INSERT INTO messages (content, username) VALUES (?, ?)",
-      [content, req.user.username]
+      [filtered, req.user.username]
     );
     const [rows] = await pool.execute(
       "SELECT id, content, username, created_at FROM messages WHERE id = ?",
       [result.insertId]
     );
     const message = rows[0];
-    console.log(`Message received: ${content}`);
+    console.log(`Message received: ${filtered}`);
     io.emit("receive_message", message);
     res.status(201).json(message);
   } catch (err) {
@@ -232,17 +253,18 @@ io.on("connection", (socket) => {
   socket.on("send_message", async (payload) => {
     const { content } = payload;
     if (!content) return;
+    const filtered = filterContent(content);
     try {
       const [result] = await pool.execute(
         "INSERT INTO messages (content, username) VALUES (?, ?)",
-        [content, socket.user.username]
+        [filtered, socket.user.username]
       );
       const [rows] = await pool.execute(
         "SELECT id, content, username, created_at FROM messages WHERE id = ?",
         [result.insertId]
       );
       const message = rows[0];
-      console.log(`Message received: ${content}`);
+      console.log(`Message received: ${filtered}`);
       io.emit("receive_message", message);
     } catch (err) {
       console.error("send_message error:", err);
